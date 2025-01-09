@@ -111,9 +111,14 @@ def ipn():
 
     # Convertir el kr-answer en Json
     answer_json = json.loads(answer)
+
+    transaction = answer_json['transactions'][0]
+    orderStatus = answer_json['orderStatus']
+    orderId = answer_json['orderDetails']['orderId']
+    transactionUuid = transaction['uuid']
     
     # Retorna una respuesta HTTP 200
-    return 'OK! OrderStatus is ' + answer_json['orderStatus'], 200
+    return 'OK! OrderStatus is ' + orderStatus, 200
 
 
 def checkHash(reqPost, key):
