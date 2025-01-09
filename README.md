@@ -62,10 +62,14 @@ Reemplace **[CHANGE_ME]** con sus credenciales de `API REST` extraídas desde el
 - Editar el archivo `key.py` en la ruta raíz:
 ```python
 credentials = {
-    "USERNAME": "CHANGE_ME_USER_ID",
-    "PASSWORD": "CHANGE_ME_PASSWORD",
-    "PUBLIC_KEY": "CHANGE_ME_PUBLIC_KEY",
-    "HMACSHA256": "CHANGE_ME_HMAC_SHA_256"
+    # Identificador de su tienda
+    "USERNAME": "~ CHANGE_ME_USER_ID ~",
+    # Clave de Test o Producción
+    "PASSWORD": "~ CHANGE_ME_PASSWORD ~",
+    # Clave Pública de Test o Producción
+    "PUBLIC_KEY": "~ CHANGE_ME_PUBLIC_KEY ~",
+    # Clave HMAC-SHA-256 de Test o Producción
+    "HMACSHA256": "~ CHANGE_ME_HMAC_SHA_256 ~"
 }
 ```
 
@@ -198,15 +202,16 @@ Se realizará la validación de la firma con los datos del parámetro `kr-answer
 ```python
 @app.post('/result')
 def paidResult():
-    # Asignando los valores de la respuesta de Izipay en las variables
-    krHash = request.form.get('kr-hash')
+    if not request.form: raise Exception("no post data received!")
+    if not checkHash(request.form, credentials["HMACSHA256"]) : raise Exception("Invalid signature")
     ...
     ...
-    
-    # Calculamos un Hash usando el valor del 'kr-answer' y el valor del 'kr-hash-key'
-    hash_object = hmac.new(credentials['HMACSHA256'].encode('utf-8'), answer.encode('utf-8'), hashlib.sha256)
-    answerHash = hash_object.hexdigest()
-    
+
+# Manejo de solicitudes POST para la ruta ipn
+@app.post('/ipn')
+def ipn():
+    if not request.form: raise Exception("no post data received!")w 
+    if not checkHash(request.form, credentials["PASSWORD"]) : raise Exception("Invalid signature")
     ...
     ...
 ```
@@ -214,39 +219,29 @@ def paidResult():
 Se valida que la firma recibida es correcta. Podrás encontrarlo en el archivo `app.py`.
 
 ```python
-@app.post('/result')
-def paidResult():
-
-    ...
-    ...
-    
-    # Verifica la integridad del Hash recibido y el generado
-    if krHash == answerHash:
-        ...
-        ...
+def checkHash(reqPost, key):
+    answerHash = hmac.new(key.encode('utf-8'), reqPost.get("kr-answer").encode('utf-8'), hashlib.sha256).hexdigest()
+    hash = reqPost.get('kr-hash')
+    return hash == answerHash
 ```
 
 En caso que la validación sea exitosa, se puede mostrar los datos de `kr-answer` a través de un JSON y mostrar los datos del pago realizado. Podrás encontrarlo en el archivo `app.py`.
 
 ```python
 @app.post('/result')
-def paidResult():
-    
+def paidResult(): 
     ...
     ...
-
+    # Asignando los valores de la respuesta de Izipay en las variables
     answer = request.form.get('kr-answer')
+    
     # Convertir el kr-answer en Json
     answer_json = json.loads(answer)
     # Formatear el Json a Pretty Json
     pjson = json.dumps(answer_json, indent=2, ensure_ascii=False)
     
-    # Verifica la integridad del Hash recibido y el generado
-    if krHash == answerHash:
-        # Renderiza el template enviando los valores de la transacción
-        return render_template('result.html', krHash=krHash, krHashAlgorithm=krHashAlgorithm, krAnswerType=krAnswerType, data=answer_json, krHashKey=krHashKey, pjson=pjson)
-    else:
-        return render_template('result.html', data={'response': 'Error en el pago'})
+    # Renderiza el template enviando los valores de la transacción
+    return render_template('result.html', krHash=krHash, krHashAlgorithm=krHashAlgorithm, krAnswerType=krAnswerType, data=answer_json, krHashKey=krHashKey, pjson=pjson)
 ```
 ℹ️ Para más información: [Analizar resultado del pago](https://secure.micuentaweb.pe/doc/es-PE/rest/V4.0/kb/payment_done.html)
 
@@ -258,23 +253,17 @@ Se realizará la validación de la firma con los datos del parámetro `kr-answer
 ```python
 @app.post('/ipn')
 def ipn():
+    if not request.form: raise Exception("no post data received!")
+    if not checkHash(request.form, credentials["PASSWORD"]) : raise Exception("Invalid signature")
+
     # Asignando los valores de la respuesta IPN en las variables
-    krHash = request.form.get('kr-hash')
     answer = request.form.get('kr-answer')
-    
-    # Calculamos un Hash usando el valor del 'kr-answer' y el valor del 'kr-hash-key'
-    hash_object = hmac.new(credentials['PASSWORD'].encode('utf-8'), answer.encode('utf-8'), hashlib.sha256)
-    answerHash = hash_object.hexdigest()
 
     # Convertir el kr-answer en Json
     answer_json = json.loads(answer)
     
-    # Verifica la integridad del Hash recibido y el generado
-    if krHash == answerHash:
-        # Imprime en la terminal el Order Status
-        print("OK! Order Status is " + answer_json['orderStatus'])
-        # Retorna una respuesta HTTP 200
-        return 'Correcto', 200
+    # Retorna una respuesta HTTP 200
+    return 'OK! OrderStatus is ' + answer_json['orderStatus'], 200
 ```
 
 La IPN debe ir configurada en el Backoffice Vendedor, en `Configuración -> Reglas de notificación -> URL de notificación al final del pago`
@@ -304,10 +293,14 @@ Reemplace **[CHANGE_ME]** con sus credenciales de PRODUCCIÓN de `API REST` extr
 - Editar el archivo `key.py` en la ruta raíz:
 ```python
 credentials = {
-    "USERNAME": "CHANGE_ME_USER_ID",
-    "PASSWORD": "CHANGE_ME_PASSWORD",
-    "PUBLIC_KEY": "CHANGE_ME_PUBLIC_KEY",
-    "HMACSHA256": "CHANGE_ME_HMAC_SHA_256"
+    # Identificador de su tienda
+    "USERNAME": "~ CHANGE_ME_USER_ID ~",
+    # Clave de Test o Producción
+    "PASSWORD": "~ CHANGE_ME_PASSWORD ~",
+    # Clave Pública de Test o Producción
+    "PUBLIC_KEY": "~ CHANGE_ME_PUBLIC_KEY ~",
+    # Clave HMAC-SHA-256 de Test o Producción
+    "HMACSHA256": "~ CHANGE_ME_HMAC_SHA_256 ~"
 }
 ```
 
